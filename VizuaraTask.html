@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fun with Decision Trees!</title>
+    <link rel="stylesheet" href="Vizuara Task2.css">
+</head>
+<body>
+    <div class="intro-section">
+        <h1>🌳 Learning Decision Trees! 🌳</h1>
+        <div class="intro-content">
+            <h2>What is a Decision Tree? 🤔</h2>
+            <p>A decision tree is a tool that helps make decisions by asking questions step by step. Each question leads to different choices, like branches on a tree. By answering these questions one by one, you can find the best solution or decision. Computers also use decision trees to solve problems and make smart choices in a simple and organized way.</p>
+            
+            <div class="example-box">
+                <h3>How Does it Work? 🎮</h3>
+                <ul>
+                    <li>🌱 Start with a question</li>
+                    <li>🌿 Choose an answer</li>
+                    <li>🌳 Follow the path to the next question</li>
+                    <li>⭐ Reach your final answer!</li>
+                </ul>
+            </div>
+
+            <p>For example, when choosing a pet, we ask questions like:</p>
+            <ul>
+                <li>"Do I want a big or small pet?"</li>
+                <li>"Do I have enough space?"</li>
+                <li>"Do I like quiet pets?"</li>
+            </ul>
+            
+            <button class="start-button" onclick="startInteractive()">Start the Interactive Tree! 🚀</button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="tree-container" id="treeContainer">
+            <!-- Decision tree will be rendered here -->
+        </div>
+        <div class="ai-container">
+            <h3>AI Assistant</h3>
+            <div id="chatBox" class="chat-box"></div>
+            <div class="control-buttons">
+                <button id="speakButton" class="control-button">
+                    <i class="fas fa-microphone"></i> Speak
+                </button>
+                <button id="readButton" class="control-button">
+                    <i class="fas fa-volume-up"></i> Read
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="quizSection" class="quiz-section">
+        <h2>🎯 Test Your Knowledge!</h2>
+        <div id="quizContainer">
+            <div class="quiz-question">
+                <p id="questionText"></p>
+                <div id="options" class="quiz-options"></div>
+            </div>
+            <p id="feedback" class="quiz-feedback"></p>
+            <button id="nextQuestion" class="quiz-button" style="display: none;">Next Question</button>
+            <div id="score" class="quiz-score"></div>
+        </div>
+    </div>
+
+    <script>
+        const decisionTree = {
+            question: "What pet should I get?",
+            image: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e",
+            choices: [
+                {
+                    text: "I want a big pet",
+                    image: "https://images.unsplash.com/photo-1546527868-ccb7ee7dfa6a",
+                    next: {
+                        question: "Do you have a yard?",
+                        image: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6",
+                        choices: [
+                            {
+                                text: "Yes",
+                                result: "Get a dog! They need space to run and play.",
+                                image: "https://images.unsplash.com/photo-1517849845537-4d257902454a"
+                            },
+                            {
+                                text: "No",
+                                result: "Consider a cat! They're perfect for indoor living.",
+                                image: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba"
+                            }
+                        ]
+                    }
+                },
+                {
+                    text: "I want a small pet",
+                    image: "https://images.unsplash.com/photo-1425082661705-1834bfd09dca",
+                    next: {
+                        question: "Do you prefer quiet pets?",
+                        image: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba",
+                        choices: [
+                            {
+                                text: "Yes",
+                                result: "A hamster would be perfect!",
+                                image: "https://images.unsplash.com/photo-1425082661705-1834bfd09dca"
+                            },
+                            {
+                                text: "No",
+                                result: "Get a parrot! They're social and talkative.",
+                                image: "https://images.unsplash.com/photo-1552728089-57bdde30beb3"
+                            }
+                        ]
+                    }
+                }
+            ]
+        };
+
+        const quizQuestions = [
+            {
+                question: "What is a decision tree used for?",
+                options: [
+                    "To help make choices by asking questions",
+                    "To grow real trees",
+                    "To draw pictures",
+                    "To play music"
+                ],
+                correct: 0
+            },
+            {
+                question: "What happens after you answer each question in a decision tree?",
+                options: [
+                    "The game ends",
+                    "You go back to start",
+                    "You move to the next question or get an answer",
+                    "You lose points"
+                ],
+                correct: 2
+            },
+            {
+                question: "Why are decision trees helpful?",
+                options: [
+                    "They make decisions for you",
+                    "They help break down big decisions into smaller questions",
+                    "They are fun to climb",
+                    "They grow fruits"
+                ],
+                correct: 1
+            }
+        ];
+
+        let recognition = null;
+        let synth = null;
+        let currentQuestion = 0;
+        let score = 0;
+
+        function initSpeechFeatures() {
+            try {
+                recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                synth = window.speechSynthesis;
+                
+                recognition.onresult = (event) => {
+                    const speech = event.results[0][0].transcript.toLowerCase();
+                    addMessage(speech, 'user');
+                    processVoiceInput(speech);
+                };
+
+                recognition.onerror = (event) => {
+                    addMessage("Sorry, I couldn't understand that. Please try again.", 'ai');
+                };
+            } catch (e) {
+                console.error("Speech recognition not supported");
+                addMessage("Speech recognition is not supported in this browser.", 'ai');
+            }
+        }
+
+        function startInteractive() {
+            document.querySelector('.intro-section').style.display = 'none';
+            document.querySelector('.main-container').style.display = 'flex';
+            startTree();
+        }
+
+        function processVoiceInput(speech) {
+            const options = document.querySelectorAll('.option');
+            let found = false;
+            
+            options.forEach(option => {
+                const optionText = option.querySelector('p').textContent.toLowerCase();
+                if (speech.includes(optionText) || 
+                    (speech.includes('small') && optionText.includes('small')) ||
+                    (speech.includes('big') && optionText.includes('big'))) {
+                    option.click();
+                    found = true;
+                    highlightSelection(option);
+                }
+            });
+
+            if (!found) {
+                addMessage("I didn't catch that. Please try saying 'I want a small pet' or 'I want a big pet'", 'ai');
+            }
+        }
+
+        function highlightSelection(selectedOption) {
+            document.querySelectorAll('.option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            selectedOption.classList.add('selected');
+        }
+
+        function showNode(data) {
+            const container = document.getElementById('treeContainer');
+            container.innerHTML = '';
+
+            const nodeDiv = document.createElement('div');
+            nodeDiv.className = 'node';
+            nodeDiv.innerHTML = `
+                <img src="${data.image}" alt="${data.question || data.result}">
+                <h2>${data.question || data.result}</h2>
+            `;
+            container.appendChild(nodeDiv);
+
+            if (data.choices) {
+                const optionsDiv = document.createElement('div');
+                optionsDiv.className = 'options';
+                
+                data.choices.forEach(choice => {
+                    const optionDiv = document.createElement('div');
+                    optionDiv.className = 'option';
+                    optionDiv.innerHTML = `
+                        <img src="${choice.image}" alt="${choice.text}">
+                        <p>${choice.text}</p>
+                    `;
+                    optionDiv.onclick = () => {
+                        highlightSelection(optionDiv);
+                        setTimeout(() => {
+                            if (choice.result) {
+                                showNode(choice);
+                                addMessage(choice.result, 'ai');
+                                showResetButton();
+                            } else if (choice.next) {
+                                showNode(choice.next);
+                                addMessage(`How about: ${choice.next.question}`, 'ai');
+                            }
+                        }, 600);
+                    };
+                    optionsDiv.appendChild(optionDiv);
+                });
+                container.appendChild(optionsDiv);
+            }
+        }
+
+        function addMessage(text, type) {
+            const chatBox = document.getElementById('chatBox');
+            const message = document.createElement('div');
+            message.className = `message ${type}-message`;
+            message.textContent = text;
+            chatBox.appendChild(message);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function readCurrentQuestion() {
+            const question = document.querySelector('.node h2').textContent;
+            const utterance = new SpeechSynthesisUtterance(question);
+            synth.speak(utterance);
+        }
+
+        function showResetButton() {
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.textAlign = 'center';
+            buttonContainer.innerHTML = `
+                <button class="reset-button" onclick="startTree()">Start Over</button>
+                <button class="reset-button" style="background: #2196F3;" onclick="showQuiz()">Take Quiz</button>
+            `;
+            document.getElementById('treeContainer').appendChild(buttonContainer);
+        }
+
+        function showQuiz() {
+            document.querySelector('.main-container').style.display = 'none';
+            document.getElementById('quizSection').style.display = 'block';
+            displayQuestion();
+        }
+
+        function displayQuestion() {
+            if (currentQuestion >= quizQuestions.length) {
+                showFinalScore();
+                return;
+            }
+
+            const question = quizQuestions[currentQuestion];
+            document.getElementById('questionText').textContent = question.question;
+            
+            const optionsContainer = document.getElementById('options');
+            optionsContainer.innerHTML = '';
+            
+            question.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'quiz-option';
+                button.textContent = option;
+                button.onclick = () => checkAnswer(index);
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        function checkAnswer(selectedIndex) {
+            const question = quizQuestions[currentQuestion];
+            const options = document.querySelectorAll('.quiz-option');
+            const feedback = document.getElementById('feedback');
+            
+            options.forEach(option => option.disabled = true);
+            
+            if (selectedIndex === question.correct) {
+                score++;
+                feedback.textContent = "Correct! 🎉";
+                feedback.style.color = "green";
+                options[selectedIndex].classList.add('correct');
+            } else {
+                feedback.textContent = "Not quite right. Try again! 💪";
+                feedback.style.color = "red";
+                options[selectedIndex].classList.add('incorrect');
+                options[question.correct].classList.add('correct');
+            }
+            
+            document.getElementById('nextQuestion').style.display = 'block';
+            document.getElementById('nextQuestion').onclick = nextQuestion;
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            document.getElementById('nextQuestion').style.display = 'none';
+            document.getElementById('feedback').textContent = '';
+            displayQuestion();
+        }
+
+        function showFinalScore() {
+            const percentage = (score / quizQuestions.length) * 100;
+            document.getElementById('quizContainer').innerHTML = `
+                <h2>Quiz Complete! 🎉</h2>
+                <p>Your Score: ${score} out of ${quizQuestions.length} (${percentage}%)</p>
+                <button onclick="location.reload()" class="quiz-button">Try Again</button>
+            `;
+        }
+
+        function startTree() {
+            showNode(decisionTree);
+            addMessage("Hi! I'm your AI assistant. I can help you make decisions. Try speaking your choice or click the options!", 'ai');
+        }
+
+        window.onload = function() {
+            initSpeechFeatures();
+            document.getElementById('speakButton').onclick = () => {
+                if (recognition) {
+                    recognition.start();
+                    addMessage("I'm listening...", 'ai');
+                }
+            };
+            document.getElementById('readButton').onclick = readCurrentQuestion;
+        };
+    </script>
+</body>
+</html>
+                            
